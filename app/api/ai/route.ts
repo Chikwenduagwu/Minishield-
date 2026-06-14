@@ -60,7 +60,7 @@ async function buildWalletContext(userAddress: string): Promise<string> {
       abi: VAULT_ABI,
       functionName: "getAllVaults",
       args: [userAddress as `0x${string}`],
-    }) as bigint[];
+    }) as readonly bigint[];
 
     const [usdmAmt, usdmAt, usdcAmt, usdcAt, usdtAmt, usdtAt] = result;
     const usdm  = Number(formatUnits(usdmAmt, 18));
