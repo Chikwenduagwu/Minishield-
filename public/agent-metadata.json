@@ -1,0 +1,28 @@
+{
+  "name": "Shield AI",
+  "version": "1.0.0",
+  "description": "Shield AI is MiniShield's on-chain financial assistant. It helps users in inflation-prone countries protect purchasing power, schedule remittances, and manage cross-border payments via Celo and MiniPay.",
+  "capabilities": [
+    "financial_advice",
+    "inflation_analysis",
+    "remittance_scheduling",
+    "balance_query",
+    "payment_planning"
+  ],
+  "payment": {
+    "protocol": "x402",
+    "token": "USDC",
+    "network": "celo",
+    "pricePerQuery": "0.01",
+    "priceInTokenUnits": "10000"
+  },
+  "networks": ["celo"],
+  "category": "finance",
+  "tags": ["defi", "remittance", "inflation", "minipay", "emerging-markets"],
+  "author": "MiniShield",
+  "license": "MIT",
+  "erc8004": {
+    "identityRegistry": "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432",
+    "reputationRegistry": "0x8004BAa17C55a88189AE136b182e5fdA19dE9b63"
+  }
+}
