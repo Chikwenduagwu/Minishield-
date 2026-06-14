@@ -7,7 +7,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "compile": "hardhat compile",
+    "test:contracts": "hardhat test",
+    "deploy:testnet": "hardhat run scripts/deploy.js --network alfajores",
+    "deploy:mainnet": "hardhat run scripts/deploy.js --network celo"
   },
   "dependencies": {
     "next": "14.2.5",
@@ -33,7 +37,9 @@
     "postcss": "^8",
     "autoprefixer": "^10.0.1",
     "eslint": "^8",
-    "eslint-config-next": "14.2.5",
+    "eslint-config-next": "14.2.5"
+  },
+  "optionalDependencies": {
     "hardhat": "^2.22.8",
     "@nomicfoundation/hardhat-toolbox": "^4.0.0",
     "@nomicfoundation/hardhat-verify": "^2.0.0",
