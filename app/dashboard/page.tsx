@@ -129,26 +129,42 @@ export default function DashboardPage() {
     }
   }, [address, fetchVault, fetchSchedules]);
 
-  // Low-balance guard
-  if (!walletLoading && !isConnected) {
+  // Loading state
+  if (walletLoading) {
     return (
       <AppShell>
-        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6">
+        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+          <div className="w-12 h-12 border-2 border-[var(--orange)] border-t-transparent rounded-full animate-spin" />
+          <p className="text-[var(--text-3)] text-[14px]">Loading your wallet...</p>
+        </div>
+      </AppShell>
+    );
+  }
+
+  // Not connected — user is on desktop outside MiniPay
+  if (!isConnected) {
+    return (
+      <AppShell>
+        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6 text-center px-4">
           <div className="w-20 h-20 bg-[var(--orange-dim)] rounded-full flex items-center justify-center">
-            <Shield className="w-10 h-10 text-[var(--orange)]" />
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2L4 6v6c0 5.55 3.84 10.74 8 12 4.16-1.26 8-6.45 8-12V6L12 2z"/>
+            </svg>
           </div>
-          <div className="text-center">
-            <h2 className="font-display font-bold text-2xl text-black mb-2">Open in MiniPay</h2>
-            <p className="text-[var(--text-2)] text-[15px] max-w-xs">
-              MiniShield is a MiniPay Mini App. Open it from inside MiniPay to connect your wallet automatically.
+          <div>
+            <h2 className="font-bold text-[22px] text-black mb-2">Open inside MiniPay</h2>
+            <p className="text-[var(--text-2)] text-[14px] max-w-[280px] mx-auto leading-relaxed">
+              MiniShield is a MiniPay Mini App. Your wallet connects automatically when you open this from inside MiniPay.
             </p>
           </div>
-          <a
-            href={DEEPLINKS.ADD_CASH}
-            className="btn-primary text-[14px] px-6 py-3 no-underline"
-          >
-            Open MiniPay
-          </a>
+          <div className="flex flex-col gap-3 w-full max-w-[260px]">
+            <a href={DEEPLINKS.ADD_CASH} className="btn-primary text-[14px] px-6 py-3 no-underline justify-center">
+              Add Funds in MiniPay
+            </a>
+            <p className="text-[11px] text-[var(--text-3)]">
+              No connect button needed — wallet auto-connects inside MiniPay
+            </p>
+          </div>
         </div>
       </AppShell>
     );
@@ -271,4 +287,5 @@ export default function DashboardPage() {
       </div>
     </AppShell>
   );
-}
+              }
+    
