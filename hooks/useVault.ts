@@ -48,7 +48,7 @@ export function useVault(): VaultState {
         args: [user],
       });
 
-      const [usdmAmt, usdmAt, usdcAmt, usdcAt, usdtAmt, usdtAt] = result as bigint[];
+      const [usdmAmt, usdmAt, usdcAmt, usdcAt, usdtAmt, usdtAt] = result as readonly bigint[];
 
       const usdm = Number(formatUnits(usdmAmt, 18));
       const usdc = Number(formatUnits(usdcAmt, 6));

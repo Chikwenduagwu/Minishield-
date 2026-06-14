@@ -29,8 +29,8 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       user,
-      senderScheduleIds:    (senderIds    as bigint[]).map(String),
-      recipientScheduleIds: (recipientIds as bigint[]).map(String),
+      senderScheduleIds:    (senderIds    as readonly bigint[]).map(String),
+      recipientScheduleIds: (recipientIds as readonly bigint[]).map(String),
       claimableNow: Number(formatUnits(claimable as bigint, 18)).toFixed(4),
     });
   } catch (err) {
