@@ -1,11 +1,9 @@
-import hre from 'hardhat';
-import * as fs2 from 'fs';
-import * as path from 'path';
+
+const { ethers } = require('hardhat');
 
 async function main() {
-  const ethers = hre.ethers;
   const [deployer] = await ethers.getSigners();
-  console.log('Deploying...', deployer.address);
+  console.log('Deployer:', deployer.address);
   const bal = await ethers.provider.getBalance(deployer.address);
   console.log('Balance:', ethers.formatEther(bal), 'CELO');
 
@@ -28,11 +26,12 @@ async function main() {
   const agAddr = await ag.getAddress();
   console.log('ShieldAgentRegistry:', agAddr);
 
-  const out = { MiniShieldVault: vaultAddr, RemittanceVault: remAddr, ShieldAgentRegistry: agAddr };
-  fs2.writeFileSync('deployed-addresses.json', JSON.stringify(out, null, 2));
-  console.log('NEXT_PUBLIC_VAULT_CONTRACT=' + vaultAddr);
-  console.log('NEXT_PUBLIC_REMITTANCE_CONTRACT=' + remAddr);
-  console.log('NEXT_PUBLIC_AGENT_REGISTRY_CONTRACT=' + agAddr);
+  const out = JSON.stringify({ MiniShieldVault: vaultAddr, RemittanceVault: remAddr, ShieldAgentRegistry: agAddr }, null, 2);
+  require('fs').writeFileSync('deployed-addresses.json', out);
+  console.log('Done! Addresses saved.');
+  console.log('VAULT=' + vaultAddr);
+  console.log('REMITTANCE=' + remAddr);
+  console.log('AGENT=' + agAddr);
 }
 
 main().catch(e => { console.error(e); process.exit(1); });

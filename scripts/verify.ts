@@ -1,4 +1,5 @@
-import { run } from "hardhat";
+import hre from "hardhat";
+const { run } = hre;
 import * as fs from "fs";
 import * as path from "path";
 
