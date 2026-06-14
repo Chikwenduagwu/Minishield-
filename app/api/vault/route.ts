@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
       abi: VAULT_ABI,
       functionName: "getAllVaults",
       args: [user],
-    }) as bigint[];
+    }) as readonly bigint[];
 
     const [ua, uat, ca, cat, ta, tat] = result;
     const usdm = Number(formatUnits(ua, 18));
