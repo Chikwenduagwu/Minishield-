@@ -16,7 +16,8 @@
     "plugins": [{ "name": "next" }],
     "paths": {
       "@/*": ["./*"]
-    }
+    },
+    "typeRoots": ["./types", "./node_modules/@types"]
   },
   "include": [
     "next-env.d.ts",
@@ -25,5 +26,11 @@
     ".next/types/**/*.ts",
     "types/**/*.d.ts"
   ],
-  "exclude": ["node_modules", "contracts", "scripts", "test"]
+  "exclude": [
+    "node_modules",
+    "contracts",
+    "scripts",
+    "test",
+    "hardhat.config.ts"
+  ]
 }
