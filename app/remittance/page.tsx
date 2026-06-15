@@ -202,8 +202,14 @@ export default function RemittancePage() {
         <div className="bg-[var(--orange)] rounded-2xl p-6 relative overflow-hidden">
           <div className="absolute -bottom-8 -right-8 w-32 h-32 bg-white/10 rounded-full" />
           <p className="font-mono text-[11px] text-white/70 uppercase tracking-widest mb-2">Total Sent This Month</p>
-          <p className="font-display font-bold text-[40px] text-white leading-none mb-1">$225.00</p>
-          <p className="text-[13px] text-white/70">3 of 4 tranches released</p>
+          <p className="font-bold text-[40px] text-white leading-none mb-1">
+            {formatUsd(senderSchedules.reduce((s, sc) => s + sc.claimedAmount, 0))}
+          </p>
+          <p className="text-[13px] text-white/70">
+            {senderSchedules.length > 0
+              ? `${senderSchedules.reduce((s, sc) => s + sc.tranches.filter(t => t.claimed).length, 0)} tranches claimed`
+              : "No schedules yet"}
+          </p>
         </div>
         <div className="bg-white border border-[var(--border)] rounded-2xl p-6">
           <p className="font-mono text-[11px] text-[var(--text-3)] uppercase tracking-widest mb-2">Claimable Now</p>
@@ -239,4 +245,5 @@ export default function RemittancePage() {
       </div>
     </AppShell>
   );
-}
+      }
+                                                                  
