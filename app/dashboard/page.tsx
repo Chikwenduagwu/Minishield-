@@ -80,47 +80,14 @@ function MiniBarChart() {
 }
 
 // ── Activity item ─────────────────────────────────────────────────────────
-const MOCK_ACTIVITY = [
-  { type: "send", label: "Remittance – Week 2", time: "Jun 8 · 09:41", amount: "-$75.00", color: "orange" },
-  { type: "recv", label: "USDm Deposit",        time: "Jun 6 · 14:20", amount: "+$200.00", color: "green" },
-  { type: "bill", label: "Internet Bill",       time: "Jun 5 · 08:00", amount: "-$15.00", color: "indigo" },
-  { type: "send", label: "Remittance – Week 1", time: "Jun 1 · 09:00", amount: "-$75.00", color: "orange" },
-];
 
-function ActivityItem({ item }: { item: typeof MOCK_ACTIVITY[0] }) {
-  const iconMap = {
-    send: Send,
-    recv: TrendingUp,
-    bill: CreditCard,
-  };
-  const Icon = iconMap[item.type as keyof typeof iconMap] ?? Send;
-  const bgMap = { orange: "bg-[var(--orange-dim)]", green: "bg-green-50", indigo: "bg-indigo-50" };
-  const strokeMap = { orange: "text-[var(--orange)]", green: "text-green-600", indigo: "text-indigo-500" };
 
-  return (
-    <div className="flex items-center gap-3 py-3.5 border-b border-[var(--border)] last:border-0">
-      <div className={clsx("w-10 h-10 rounded-[11px] flex items-center justify-center flex-shrink-0", bgMap[item.color as keyof typeof bgMap])}>
-        <Icon className={clsx("w-4 h-4", strokeMap[item.color as keyof typeof strokeMap])} strokeWidth={1.6} />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-[13.5px] font-medium text-black truncate">{item.label}</p>
-        <p className="font-mono text-[11px] text-[var(--text-3)] mt-0.5">{item.time}</p>
-      </div>
-      <span className={clsx(
-        "font-display font-bold text-[13.5px] flex-shrink-0",
-        item.amount.startsWith("+") ? "text-green-600" : "text-red-500"
-      )}>
-        {item.amount}
-      </span>
-    </div>
-  );
-}
 
 // ── Main page ─────────────────────────────────────────────────────────────
 export default function DashboardPage() {
   const { address, balances, isConnected, isLoading: walletLoading } = useMiniPay();
   const { data: vaultData, fetchVault } = useVault();
-  const { senderSchedules, fetchSchedules } = useRemittance();
+  const { senderSchedules, recipientSchedules, fetchSchedules } = useRemittance();
 
   useEffect(() => {
     if (address) {
@@ -129,58 +96,54 @@ export default function DashboardPage() {
     }
   }, [address, fetchVault, fetchSchedules]);
 
-  // Loading state
+  // Loading spinner
   if (walletLoading) {
     return (
       <AppShell>
-        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-          <div className="w-12 h-12 border-2 border-[var(--orange)] border-t-transparent rounded-full animate-spin" />
-          <p className="text-[var(--text-3)] text-[14px]">Loading your wallet...</p>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="w-10 h-10 border-2 border-[var(--orange)] border-t-transparent rounded-full animate-spin" />
         </div>
       </AppShell>
     );
   }
 
-  // Not connected — user is on desktop outside MiniPay
+  // Not connected — show instructions, not mock data
   if (!isConnected) {
     return (
       <AppShell>
-        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6 text-center px-4">
-          <div className="w-20 h-20 bg-[var(--orange-dim)] rounded-full flex items-center justify-center">
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-5 text-center px-4">
+          <div className="w-16 h-16 bg-[var(--orange-dim)] rounded-full flex items-center justify-center">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 2L4 6v6c0 5.55 3.84 10.74 8 12 4.16-1.26 8-6.45 8-12V6L12 2z"/>
             </svg>
           </div>
           <div>
-            <h2 className="font-bold text-[22px] text-black mb-2">Open inside MiniPay</h2>
-            <p className="text-[var(--text-2)] text-[14px] max-w-[280px] mx-auto leading-relaxed">
-              MiniShield is a MiniPay Mini App. Your wallet connects automatically when you open this from inside MiniPay.
+            <h2 className="font-bold text-[20px] text-black mb-2">Open inside MiniPay</h2>
+            <p className="text-[var(--text-2)] text-[14px] max-w-[260px] mx-auto leading-relaxed">
+              MiniShield is a MiniPay Mini App. Your wallet connects automatically — no button needed.
             </p>
           </div>
-          <div className="flex flex-col gap-3 w-full max-w-[260px]">
-            <a href={DEEPLINKS.ADD_CASH} className="btn-primary text-[14px] px-6 py-3 no-underline justify-center">
-              Add Funds in MiniPay
-            </a>
-            <p className="text-[11px] text-[var(--text-3)]">
-              No connect button needed — wallet auto-connects inside MiniPay
-            </p>
-          </div>
+          <a href="https://link.minipay.xyz/add_cash?tokens=USDm,USDC,USDT"
+            className="btn-primary text-[14px] no-underline">
+            Add Funds in MiniPay
+          </a>
         </div>
       </AppShell>
     );
   }
 
   const totalVault = vaultData?.totalUsd ?? balances.totalUsd;
+  const sentThisMonth = senderSchedules.reduce((sum, s) => sum + s.claimedAmount, 0);
   const nextSchedule = senderSchedules[0]?.tranches?.find((t) => !t.claimed && !t.cancelled);
 
   return (
     <AppShell>
       {/* Stat cards */}
       <div className="grid grid-cols-4 gap-4 mb-6 max-xl:grid-cols-2 max-sm:grid-cols-1">
-        <StatCard label="Vault Balance"      value={formatUsd(totalVault)}  change="↑ +$47.20"    changeType="up"      icon={Shield}    delay={0} />
-        <StatCard label="Sent This Month"    value="$225.00"                change="3 tranches"   changeType="neutral" icon={Send}      delay={0.05} />
+        <StatCard label="Vault Balance"      value={formatUsd(totalVault)}  change={totalVault > 0 ? "In stablecoins" : "Deposit to start"} changeType={totalVault > 0 ? "up" : "neutral"}      icon={Shield}    delay={0} />
+        <StatCard label="Sent This Month"    value={formatUsd(sentThisMonth)} change={`${senderSchedules.length} schedule${senderSchedules.length !== 1 ? "s" : ""}`} changeType="neutral" icon={Send}      delay={0.05} />
         <StatCard label="Inflation Shielded" value="38.2%"                  change="vs NGN"       changeType="up"      icon={TrendingUp} delay={0.1} />
-        <StatCard label="Next Release"       value={nextSchedule ? nextSchedule.releaseAt.toLocaleDateString() : "—"} change="in 3 days" changeType="neutral" icon={Clock} delay={0.15} />
+        <StatCard label="Next Release"       value={nextSchedule ? nextSchedule.releaseAt.toLocaleDateString() : "—"} change={nextSchedule ? `${Math.max(0, Math.ceil((nextSchedule.releaseAt.getTime() - Date.now()) / 86400000))} day${nextSchedule ? "s" : ""}` : "—"} changeType="neutral" icon={Clock} delay={0.15} />
       </div>
 
       {/* Mid row */}
@@ -203,12 +166,13 @@ export default function DashboardPage() {
             </Link>
           </div>
           <div className="flex flex-col gap-2">
-            {(senderSchedules[0]?.tranches?.slice(0, 4) ?? [
-              { index: 0, releaseAt: new Date("2026-06-01"), claimed: true, cancelled: false, claimable: false, amount: "75.00" },
-              { index: 1, releaseAt: new Date("2026-06-08"), claimed: true, cancelled: false, claimable: false, amount: "75.00" },
-              { index: 2, releaseAt: new Date("2026-06-15"), claimed: false, cancelled: false, claimable: true, amount: "75.00" },
-              { index: 3, releaseAt: new Date("2026-06-22"), claimed: false, cancelled: false, claimable: false, amount: "75.00" },
-            ]).map((t, i) => (
+            {senderSchedules.length === 0 ? (
+              <div className="py-6 text-center">
+                <p className="text-[13px] text-[var(--text-3)]">No remittance schedules yet</p>
+                <Link href="/remittance" className="text-[12px] text-[var(--orange)] no-underline mt-1 inline-block">Create one →</Link>
+              </div>
+            ) : null}
+            {(senderSchedules[0]?.tranches?.slice(0, 4) ?? []).map((t, i) => (
               <div key={i} className="flex items-center justify-between bg-[var(--surface)] rounded-lg px-3 py-2.5 border border-[var(--border)]">
                 <div className="flex items-center gap-2.5">
                   <div className={clsx(
@@ -231,10 +195,34 @@ export default function DashboardPage() {
       <div className="grid grid-cols-3 gap-4 max-xl:grid-cols-1">
         {/* Activity */}
         <div className="col-span-2 bg-white border border-[var(--border)] rounded-2xl p-6">
-          <span className="font-display font-bold text-[15px] text-black block mb-1">Recent Activity</span>
-          {MOCK_ACTIVITY.map((item, i) => (
-            <ActivityItem key={i} item={item} />
-          ))}
+          <span className="font-bold text-[15px] text-black block mb-3">Recent Activity</span>
+          {senderSchedules.length === 0 && recipientSchedules.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-8 text-center">
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" strokeWidth="1.2" className="mb-3"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+              <p className="text-[13px] text-[var(--text-3)]">No transactions yet</p>
+              <p className="text-[12px] text-[var(--text-3)] mt-1">Your on-chain activity will appear here</p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-0">
+              {senderSchedules.flatMap(s => s.tranches.filter(t => t.claimed).map(t => ({
+                label: `Remittance tranche`,
+                time: t.releaseAt.toLocaleDateString(),
+                amount: `-$${t.amount}`,
+                type: "send",
+              }))).slice(0, 4).map((item, i) => (
+                <div key={i} className="flex items-center gap-3 py-3 border-b border-[var(--border)] last:border-0">
+                  <div className="w-9 h-9 rounded-[10px] bg-[var(--orange-dim)] flex items-center justify-center flex-shrink-0">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" strokeWidth="1.7"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] font-medium text-black">{item.label}</p>
+                    <p className="font-mono text-[11px] text-[var(--text-3)]">{item.time}</p>
+                  </div>
+                  <span className="font-bold text-[13px] text-red-500">{item.amount}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* AI insight + Goals */}
@@ -248,7 +236,7 @@ export default function DashboardPage() {
                 <span className="font-display font-bold text-[14px] text-white">AI Insight</span>
               </div>
               <p className="text-[13px] text-white/45 leading-relaxed mb-4">
-                "You've shielded $47.20 from NGN depreciation this month. At this rate you'll hit your school fees goal by August."
+                {totalVault > 0 ? `Your vault holds $${totalVault.toFixed(2)} in stablecoins. This protects your purchasing power from local currency depreciation.` : "Deposit USDm, USDC, or USDT to start protecting your money from inflation."}
               </p>
               <Link href="/ai" className="block w-full py-2.5 bg-[var(--orange)] text-white text-center font-display font-bold text-[13.5px] rounded-xl no-underline hover:opacity-90 transition-opacity">
                 Ask AI Assistant →
@@ -287,5 +275,4 @@ export default function DashboardPage() {
       </div>
     </AppShell>
   );
-              }
-    
+}
