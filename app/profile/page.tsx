@@ -53,7 +53,9 @@ export default function ProfilePage() {
         </div>
         <div className="flex-1 min-w-0">
           <h2 className="font-display font-bold text-[24px] text-black mb-1">My Wallet</h2>
-          {address ? (
+          {isDemoMode ? (
+            <p className="font-mono text-[12px] text-[var(--text-3)]">Demo Mode — Open in MiniPay for live data</p>
+          ) : address ? (
             <div className="flex items-center gap-2 max-sm:justify-center">
               <p className="font-mono text-[12.5px] text-[var(--text-3)] truncate">{address}</p>
               <button onClick={copyAddress} className="p-1 hover:text-[var(--orange)] text-[var(--text-3)] transition-colors flex-shrink-0" aria-label="Copy address">
@@ -68,7 +70,7 @@ export default function ProfilePage() {
           )}
           <div className="flex items-center gap-2 mt-2 max-sm:justify-center">
             <span className="w-2 h-2 rounded-full bg-green-500" />
-            <span className="text-[12.5px] text-green-600 font-medium">Connected to Celo Mainnet</span>
+            <span className="text-[12.5px] text-green-600 font-medium">{isConnected ? "Connected · Celo Mainnet" : "Not connected"}</span>
           </div>
         </div>
         <div className="text-right max-sm:text-center flex-shrink-0">
@@ -136,4 +138,4 @@ export default function ProfilePage() {
       </div>
     </AppShell>
   );
-}
+              }
