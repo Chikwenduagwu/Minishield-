@@ -28,6 +28,9 @@ export const metadata: Metadata = {
     type: "website",
   },
   twitter: { card: "summary_large_image" },
+  other: {
+    "talentapp:project_verification": "b5c391a9ef50e48cba2f238e437ca14c4077786b46a19b9f7183570d0b12fb3f71776df81d8d4b0e36cf7ffff10546197457c0659875258f04ff0f70504a8cfd",
+  },
 };
 
 export const viewport: Viewport = {
