@@ -1,10 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { formatUnits } from "viem";
-import { erc20Abi } from "viem";
-import { isMiniPay, getPublicClient, getWalletClient, getAllBalances } from "@/lib/viem";
-import { TOKENS, DEEPLINKS } from "@/lib/constants";
+import { isMiniPay, getWalletClient, getAllBalances } from "@/lib/viem";
 
 export type WalletState = {
   address: `0x${string}` | null;
@@ -22,54 +19,46 @@ export type WalletState = {
   connect: () => Promise<void>;
 };
 
+const EMPTY_BALANCES = { USDm: "0.00", USDC: "0.00", USDT: "0.00", totalUsd: 0 };
+
 export function useMiniPay(): WalletState {
-  const [address, setAddress] = useState<`0x${string}` | null>(null);
+  const [address, setAddress]         = useState<`0x${string}` | null>(null);
   const [isConnected, setIsConnected] = useState(false);
-  const [isMP, setIsMP] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [balances, setBalances] = useState({
-    USDm: "0",
-    USDC: "0",
-    USDT: "0",
-    totalUsd: 0,
-  });
-  const initialized = useRef(false);
+  const [isMP, setIsMP]               = useState(false);
+  const [isLoading, setIsLoading]     = useState(true);
+  const [error, setError]             = useState<string | null>(null);
+  const [balances, setBalances]       = useState({ USDm: "0", USDC: "0", USDT: "0", totalUsd: 0 });
+  const initialized                   = useRef(false);
 
   const refreshBalances = useCallback(async () => {
     if (!address) return;
     try {
       const { tokens, totalUsd } = await getAllBalances(address);
       setBalances({
-        USDm: tokens.find((t) => t.symbol === "USDm")?.formatted ?? "0",
-        USDC: tokens.find((t) => t.symbol === "USDC")?.formatted ?? "0",
-        USDT: tokens.find((t) => t.symbol === "USDT")?.formatted ?? "0",
+        USDm: tokens.find(t => t.symbol === "USDm")?.formatted ?? "0",
+        USDC: tokens.find(t => t.symbol === "USDC")?.formatted ?? "0",
+        USDT: tokens.find(t => t.symbol === "USDT")?.formatted ?? "0",
         totalUsd,
       });
-    } catch (err) {
-      console.error("Balance refresh failed:", err);
-    }
+    } catch { /* silent */ }
   }, [address]);
 
   const connect = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+
+    // No ethereum provider — not in MiniPay
     if (typeof window === "undefined" || !window.ethereum) {
-      setError("No wallet detected. Open this app in MiniPay.");
       setIsLoading(false);
       return;
     }
 
     try {
-      setIsLoading(true);
-      setError(null);
-
-      const mp = isMiniPay();
-      setIsMP(mp);
-
+      setIsMP(isMiniPay());
       const walletClient = getWalletClient();
       const [addr] = await walletClient.getAddresses();
 
       if (!addr) {
-        setError("No accounts found.");
         setIsLoading(false);
         return;
       }
@@ -77,12 +66,11 @@ export function useMiniPay(): WalletState {
       setAddress(addr);
       setIsConnected(true);
 
-      // Load balances
       const { tokens, totalUsd } = await getAllBalances(addr);
       setBalances({
-        USDm: tokens.find((t) => t.symbol === "USDm")?.formatted ?? "0",
-        USDC: tokens.find((t) => t.symbol === "USDC")?.formatted ?? "0",
-        USDT: tokens.find((t) => t.symbol === "USDT")?.formatted ?? "0",
+        USDm: tokens.find(t => t.symbol === "USDm")?.formatted ?? "0",
+        USDC: tokens.find(t => t.symbol === "USDC")?.formatted ?? "0",
+        USDT: tokens.find(t => t.symbol === "USDT")?.formatted ?? "0",
         totalUsd,
       });
     } catch (err) {
@@ -99,21 +87,11 @@ export function useMiniPay(): WalletState {
     connect();
   }, [connect]);
 
-  // Refresh balances every 30s when connected
   useEffect(() => {
     if (!isConnected) return;
     const interval = setInterval(refreshBalances, 30_000);
     return () => clearInterval(interval);
   }, [isConnected, refreshBalances]);
 
-  return {
-    address,
-    isConnected,
-    isMiniPay: isMP,
-    isLoading,
-    error,
-    balances,
-    refreshBalances,
-    connect,
-  };
+  return { address, isConnected, isMiniPay: isMP, isLoading, error, balances, refreshBalances, connect };
 }
