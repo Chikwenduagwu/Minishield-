@@ -43,8 +43,8 @@ function ContextCard({ address, balances, vaultData }: {
   vaultData: ReturnType<typeof useVault>["data"];
 }) {
   const rows = [
-    { label: "Vault Total",  value: formatUsd(vaultData?.totalUsd ?? balances.totalUsd) },
-    { label: "USDm",         value: `$${parseFloat(balances.USDm).toFixed(2)}` },
+    { label: "Savings Balance", value: formatUsd(vaultData?.totalUsd ?? balances.totalUsd) },
+    { label: "USDm Stablecoin", value: `$${parseFloat(balances.USDm).toFixed(2)}` },
     { label: "USDC",         value: `$${parseFloat(balances.USDC).toFixed(2)}` },
     { label: "USDT",         value: `$${parseFloat(balances.USDT).toFixed(2)}` },
     { label: "Infl. Shield", value: "38.2%", highlight: true },
@@ -67,7 +67,7 @@ function ContextCard({ address, balances, vaultData }: {
         </div>
       </div>
 
-      <p className="font-mono text-[9.5px] text-[var(--text-3)] uppercase tracking-widest mb-2">Your Context</p>
+      <p className="font-semibold text-[13px] text-black mb-3">Your Wallet</p>
       {rows.map((r) => (
         <div key={r.label} className="flex justify-between items-center py-2 border-b border-[var(--border)] last:border-0">
           <span className="text-[12.5px] text-[var(--text-3)]">{r.label}</span>
@@ -197,7 +197,7 @@ export default function AIAssistantPage() {
 
   return (
     <AppShell>
-      <div className="flex gap-5 h-[calc(100vh-130px)] max-xl:flex-col">
+      <div className="flex gap-5 h-[calc(100vh-130px)] max-xl:h-auto max-xl:flex-col">
         {/* ── Chat window ───────────────────────────────────────────── */}
         <div className="flex-1 bg-white border border-[var(--border)] rounded-2xl flex flex-col overflow-hidden">
           {/* Header */}
@@ -326,7 +326,7 @@ export default function AIAssistantPage() {
         </div>
 
         {/* ── Right sidebar ──────────────────────────────────────────── */}
-        <div className="w-80 flex flex-col gap-4 flex-shrink-0 max-xl:w-full">
+        <div className="w-80 flex flex-col gap-4 flex-shrink-0 hidden lg:flex">
           {/* Quick prompts */}
           <div className="bg-white border border-[var(--border)] rounded-2xl p-5">
             <p className="font-display font-bold text-[14px] text-black mb-3">Quick Questions</p>
