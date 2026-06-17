@@ -134,16 +134,15 @@ export async function ensureApproval(
   });
 
   if (allowance < amount) {
-    const tokenMeta = TOKEN_LIST.find((t) => t.address === token);
-    const feeCurrency = tokenMeta?.feeCurrency ?? token;
-
+    // Use a large approval amount to avoid repeated approvals
+    const approveAmount = BigInt("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+    
     const hash = await walletClient.writeContract({
       account: user,
       address: token,
       abi: erc20Abi,
       functionName: "approve",
-      args: [spender, amount],
-      feeCurrency,
+      args: [spender, approveAmount],
     } as Parameters<typeof walletClient.writeContract>[0]);
 
     await client.waitForTransactionReceipt({ hash });
