@@ -216,7 +216,6 @@ export function useRemittance(): RemittanceState {
             interval,
             BigInt(firstRelease ?? 0),
           ],
-          feeCurrency: token.feeCurrency,
         } as Parameters<typeof walletClient.writeContract>[0]);
 
         await publicClient.waitForTransactionReceipt({ hash });
@@ -249,7 +248,6 @@ export function useRemittance(): RemittanceState {
           abi: REMITTANCE_ABI,
           functionName: "claimTranche",
           args: [BigInt(scheduleId), BigInt(trancheIndex)],
-          feeCurrency: TOKENS.USDm.feeCurrency,
         } as Parameters<typeof walletClient.writeContract>[0]);
 
         await publicClient.waitForTransactionReceipt({ hash });
@@ -282,7 +280,6 @@ export function useRemittance(): RemittanceState {
           abi: REMITTANCE_ABI,
           functionName: "cancelSchedule",
           args: [BigInt(scheduleId)],
-          feeCurrency: TOKENS.USDm.feeCurrency,
         } as Parameters<typeof walletClient.writeContract>[0]);
 
         await publicClient.waitForTransactionReceipt({ hash });
