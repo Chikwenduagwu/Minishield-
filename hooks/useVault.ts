@@ -48,7 +48,7 @@ export function useVault(): VaultState {
         args: [user],
       });
 
-      const [usdmAmt, usdmAt, usdcAmt, usdcAt, usdtAmt, usdtAt] = result as readonly bigint[];
+      const [usdmAmt, usdmAt, usdcAmt, usdcAt, usdtAmt, usdtAt] = result as bigint[];
 
       const usdm = Number(formatUnits(usdmAmt, 18));
       const usdc = Number(formatUnits(usdcAmt, 6));
@@ -89,7 +89,6 @@ export function useVault(): VaultState {
           abi: VAULT_ABI,
           functionName: "deposit",
           args: [token.address, parsed],
-          feeCurrency: token.feeCurrency,
         } as Parameters<typeof walletClient.writeContract>[0]);
 
         await publicClient.waitForTransactionReceipt({ hash });
@@ -125,7 +124,6 @@ export function useVault(): VaultState {
           abi: VAULT_ABI,
           functionName: "withdraw",
           args: [token.address, parsed],
-          feeCurrency: token.feeCurrency,
         } as Parameters<typeof walletClient.writeContract>[0]);
 
         await publicClient.waitForTransactionReceipt({ hash });
@@ -172,7 +170,6 @@ export function useVault(): VaultState {
           abi: VAULT_ABI,
           functionName: "payAiQuery",
           args: [],
-          feeCurrency: TOKENS.USDC.feeCurrency,
         } as Parameters<typeof walletClient.writeContract>[0]);
 
         await publicClient.waitForTransactionReceipt({ hash });
@@ -189,4 +186,5 @@ export function useVault(): VaultState {
   );
 
   return { data, isLoading, isPending, error, fetchVault, deposit, withdraw, payAiQuery };
-}
+    }
+      
