@@ -1,182 +1,164 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { parseUnits, formatUnits } from "viem";
-import {
-  getPublicClient,
-  getWalletClient,
-  ensureApproval,
-} from "@/lib/viem";
-import { VAULT_ABI, TOKENS, type TokenSymbol } from "@/lib/constants";
+import { useEffect, useState, useCallback, useRef } from "react";
+import { isMiniPay, getPublicClient, getAllBalances } from "@/lib/viem";
 
-const VAULT_ADDRESS = process.env
-  .NEXT_PUBLIC_VAULT_CONTRACT as `0x${string}` | undefined;
-
-export type VaultData = {
-  USDm: { amount: string; depositedAt: number };
-  USDC: { amount: string; depositedAt: number };
-  USDT: { amount: string; depositedAt: number };
-  totalUsd: number;
-};
-
-export type VaultState = {
-  data: VaultData | null;
+export type WalletState = {
+  address: `0x${string}` | null;
+  isConnected: boolean;
+  isMiniPay: boolean;
   isLoading: boolean;
-  isPending: boolean;
   error: string | null;
-  fetchVault: (user: `0x${string}`) => Promise<void>;
-  deposit: (user: `0x${string}`, token: TokenSymbol, amount: string) => Promise<string>;
-  withdraw: (user: `0x${string}`, token: TokenSymbol, amount: string) => Promise<string>;
-  payAiQuery: (user: `0x${string}`) => Promise<string>;
+  balances: {
+    USDm: string;
+    USDC: string;
+    USDT: string;
+    totalUsd: number;
+  };
+  refreshBalances: () => Promise<void>;
+  connect: () => Promise<void>;
 };
 
-export function useVault(): VaultState {
-  const [data, setData] = useState<VaultData | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isPending, setIsPending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+const EMPTY_BALANCES = { USDm: "0.00", USDC: "0.00", USDT: "0.00", totalUsd: 0 };
 
-  const fetchVault = useCallback(async (user: `0x${string}`) => {
-    if (!VAULT_ADDRESS) return;
-    setIsLoading(true);
+export function useMiniPay(): WalletState {
+  const [address, setAddress]         = useState<`0x${string}` | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
+  const [isMP, setIsMP]               = useState(false);
+  const [isLoading, setIsLoading]     = useState(true);
+  const [error, setError]             = useState<string | null>(null);
+  const [balances, setBalances]       = useState(EMPTY_BALANCES);
+  const initialized                   = useRef(false);
+
+  const refreshBalances = useCallback(async () => {
+    if (!address) return;
     try {
-      const client = getPublicClient();
-      const result = await client.readContract({
-        address: VAULT_ADDRESS,
-        abi: VAULT_ABI,
-        functionName: "getAllVaults",
-        args: [user],
+      const { tokens, totalUsd } = await getAllBalances(address);
+      setBalances({
+        USDm: tokens.find(t => t.symbol === "USDm")?.formatted ?? "0",
+        USDC: tokens.find(t => t.symbol === "USDC")?.formatted ?? "0",
+        USDT: tokens.find(t => t.symbol === "USDT")?.formatted ?? "0",
+        totalUsd,
       });
+    } catch { /* silent */ }
+  }, [address]);
 
-      const [usdmAmt, usdmAt, usdcAmt, usdcAt, usdtAmt, usdtAt] = result as readonly bigint[];
+  const connect = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
 
-      const usdm = Number(formatUnits(usdmAmt, 18));
-      const usdc = Number(formatUnits(usdcAmt, 6));
-      const usdt = Number(formatUnits(usdtAmt, 6));
+    if (typeof window === "undefined" || !window.ethereum) {
+      setIsLoading(false);
+      return;
+    }
 
-      setData({
-        USDm: { amount: usdm.toFixed(2), depositedAt: Number(usdmAt) },
-        USDC: { amount: usdc.toFixed(2), depositedAt: Number(usdcAt) },
-        USDT: { amount: usdt.toFixed(2), depositedAt: Number(usdtAt) },
-        totalUsd: usdm + usdc + usdt,
+    try {
+      setIsMP(isMiniPay());
+
+      // MiniPay-compatible: use eth_requestAccounts directly
+      const accounts = await window.ethereum.request({
+        method: "eth_requestAccounts",
+      }) as string[];
+
+      const addr = accounts?.[0] as `0x${string}` | undefined;
+
+      if (!addr) {
+        setIsLoading(false);
+        return;
+      }
+
+      setAddress(addr);
+      setIsConnected(true);
+
+      // Load balances
+      const { tokens, totalUsd } = await getAllBalances(addr);
+      setBalances({
+        USDm: tokens.find(t => t.symbol === "USDm")?.formatted ?? "0.00",
+        USDC: tokens.find(t => t.symbol === "USDC")?.formatted ?? "0.00",
+        USDT: tokens.find(t => t.symbol === "USDT")?.formatted ?? "0.00",
+        totalUsd,
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load vault");
+      const msg = err instanceof Error ? err.message : "Connection failed";
+      setError(msg);
     } finally {
       setIsLoading(false);
     }
   }, []);
 
-  const deposit = useCallback(
-    async (user: `0x${string}`, tokenSymbol: TokenSymbol, amount: string): Promise<string> => {
-      if (!VAULT_ADDRESS) throw new Error("Vault contract not configured");
-      setIsPending(true);
-      setError(null);
+  // Auto-connect on mount
+  useEffect(() => {
+    if (initialized.current) return;
+    initialized.current = true;
+    connect();
+  }, [connect]);
 
-      try {
-        const token = TOKENS[tokenSymbol];
-        const parsed = parseUnits(amount, token.decimals);
+  // Also try to get address from selectedAddress immediately (MiniPay sets this)
+  useEffect(() => {
+    if (isConnected) return;
+    if (typeof window === "undefined" || !window.ethereum) return;
 
-        await ensureApproval(user, token.address, VAULT_ADDRESS, parsed, token.decimals);
+    const selected = window.ethereum.selectedAddress as `0x${string}` | undefined;
+    if (selected) {
+      setAddress(selected);
+      setIsConnected(true);
+      setIsMP(isMiniPay());
+      getAllBalances(selected).then(({ tokens, totalUsd }) => {
+        setBalances({
+          USDm: tokens.find(t => t.symbol === "USDm")?.formatted ?? "0.00",
+          USDC: tokens.find(t => t.symbol === "USDC")?.formatted ?? "0.00",
+          USDT: tokens.find(t => t.symbol === "USDT")?.formatted ?? "0.00",
+          totalUsd,
+        });
+        setIsLoading(false);
+      }).catch(() => setIsLoading(false));
+    }
+  }, [isConnected]);
 
-        const walletClient = getWalletClient();
-        const publicClient = getPublicClient();
+  // Refresh balances every 30s
+  useEffect(() => {
+    if (!isConnected) return;
+    const interval = setInterval(refreshBalances, 30_000);
+    return () => clearInterval(interval);
+  }, [isConnected, refreshBalances]);
 
-        const hash = await walletClient.writeContract({
-          account: user,
-          address: VAULT_ADDRESS,
-          abi: VAULT_ABI,
-          functionName: "deposit",
-          args: [token.address, parsed],
-        } as Parameters<typeof walletClient.writeContract>[0]);
+  // Listen for account changes
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.ethereum) return;
 
-        await publicClient.waitForTransactionReceipt({ hash });
-        await fetchVault(user);
-        return hash;
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : "Deposit failed";
-        setError(msg);
-        throw new Error(msg);
-      } finally {
-        setIsPending(false);
+    const handleAccountsChanged = (accounts: unknown) => {
+      const accs = accounts as string[];
+      if (accs.length === 0) {
+        setAddress(null);
+        setIsConnected(false);
+        setBalances(EMPTY_BALANCES);
+      } else {
+        const newAddr = accs[0] as `0x${string}`;
+        setAddress(newAddr);
+        setIsConnected(true);
+        getAllBalances(newAddr).then(({ tokens, totalUsd }) => {
+          setBalances({
+            USDm: tokens.find(t => t.symbol === "USDm")?.formatted ?? "0.00",
+            USDC: tokens.find(t => t.symbol === "USDC")?.formatted ?? "0.00",
+            USDT: tokens.find(t => t.symbol === "USDT")?.formatted ?? "0.00",
+            totalUsd,
+          });
+        }).catch(() => {});
       }
-    },
-    [fetchVault]
-  );
+    };
 
-  const withdraw = useCallback(
-    async (user: `0x${string}`, tokenSymbol: TokenSymbol, amount: string): Promise<string> => {
-      if (!VAULT_ADDRESS) throw new Error("Vault contract not configured");
-      setIsPending(true);
-      setError(null);
+    window.ethereum.on("accountsChanged", handleAccountsChanged);
+    return () => window.ethereum?.removeListener("accountsChanged", handleAccountsChanged);
+  }, []);
 
-      try {
-        const token = TOKENS[tokenSymbol];
-        const parsed = parseUnits(amount, token.decimals);
-
-        const walletClient = getWalletClient();
-        const publicClient = getPublicClient();
-
-        const hash = await walletClient.writeContract({
-          account: user,
-          address: VAULT_ADDRESS,
-          abi: VAULT_ABI,
-          functionName: "withdraw",
-          args: [token.address, parsed],
-        } as Parameters<typeof walletClient.writeContract>[0]);
-
-        await publicClient.waitForTransactionReceipt({ hash });
-        await fetchVault(user);
-        return hash;
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : "Withdrawal failed";
-        setError(msg);
-        throw new Error(msg);
-      } finally {
-        setIsPending(false);
-      }
-    },
-    [fetchVault]
-  );
-
-  const payAiQuery = useCallback(
-    async (user: `0x${string}`): Promise<string> => {
-      if (!VAULT_ADDRESS) throw new Error("Vault contract not configured");
-      setIsPending(true);
-      setError(null);
-
-      try {
-        const publicClient = getPublicClient();
-        const price = await publicClient.readContract({
-          address: VAULT_ADDRESS,
-          abi: VAULT_ABI,
-          functionName: "aiQueryPrice",
-        }) as bigint;
-
-        await ensureApproval(user, TOKENS.USDC.address, VAULT_ADDRESS, price, 6);
-
-        const walletClient = getWalletClient();
-        const hash = await walletClient.writeContract({
-          account: user,
-          address: VAULT_ADDRESS,
-          abi: VAULT_ABI,
-          functionName: "payAiQuery",
-          args: [],
-        } as Parameters<typeof walletClient.writeContract>[0]);
-
-        await publicClient.waitForTransactionReceipt({ hash });
-        return hash;
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : "AI payment failed";
-        setError(msg);
-        throw new Error(msg);
-      } finally {
-        setIsPending(false);
-      }
-    },
-    []
-  );
-
-  return { data, isLoading, isPending, error, fetchVault, deposit, withdraw, payAiQuery };
-          }
-                                                      
+  return {
+    address,
+    isConnected,
+    isMiniPay: isMP,
+    isLoading,
+    error,
+    balances,
+    refreshBalances,
+    connect,
+  };
+    }
