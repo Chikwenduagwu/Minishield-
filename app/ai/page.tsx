@@ -129,9 +129,12 @@ export default function AIAssistantPage() {
       try {
         paymentTxHash = await payAiQuery(address);
         toast.success("Query payment confirmed on-chain", { duration: 2000 });
-      } catch {
-        // Dev mode / no contract — allow free queries
-        console.warn("Payment skipped (dev mode)");
+      } catch (payErr) {
+        const payMsg = payErr instanceof Error ? payErr.message : "Payment failed";
+        console.warn("x402 payment failed:", payMsg);
+        toast.error(`Payment issue: ${payMsg}`, { duration: 3000 });
+        // Continue without payment — API will respond free in dev mode,
+        // or return 402 in production mode if REQUIRE_AI_PAYMENT is set.
       }
       setIsPaying(false);
 
@@ -361,4 +364,5 @@ export default function AIAssistantPage() {
       </div>
     </AppShell>
   );
-}
+      }
+                                        
