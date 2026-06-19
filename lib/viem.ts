@@ -133,19 +133,44 @@ export async function ensureApproval(
     args: [user, spender],
   });
 
-  if (allowance < amount) {
-    // Use a large approval amount to avoid repeated approvals
-    const approveAmount = BigInt("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
-    
-    const hash = await walletClient.writeContract({
-      account: user,
+  if (allowance >= amount) return; // already approved enough
+
+  // Approve the exact amount needed (not max) — some wallets / RPCs
+  // are more reliable with exact approvals than unlimited ones.
+  const hash = await walletClient.writeContract({
+    account: user,
+    address: token,
+    abi: erc20Abi,
+    functionName: "approve",
+    args: [spender, amount],
+  } as Parameters<typeof walletClient.writeContract>[0]);
+
+  // Wait for the approval to be mined
+  const receipt = await client.waitForTransactionReceipt({ hash, confirmations: 1 });
+
+  if (receipt.status !== "success") {
+    throw new Error("Token approval failed on-chain");
+  }
+
+  // Re-check allowance with a retry loop — public RPC nodes can lag
+  // a few seconds behind the latest block right after a write.
+  let confirmed = false;
+  for (let i = 0; i < 5; i++) {
+    const fresh = await client.readContract({
       address: token,
       abi: erc20Abi,
-      functionName: "approve",
-      args: [spender, approveAmount],
-    } as Parameters<typeof walletClient.writeContract>[0]);
+      functionName: "allowance",
+      args: [user, spender],
+    });
+    if (fresh >= amount) {
+      confirmed = true;
+      break;
+    }
+    await new Promise((r) => setTimeout(r, 1500));
+  }
 
-    await client.waitForTransactionReceipt({ hash });
+  if (!confirmed) {
+    throw new Error("Approval did not propagate in time — please try again");
   }
 }
 
